@@ -1,0 +1,336 @@
+---
+title: "Regresión Avanzada"
+author: "Hernan"
+date: "2023-10-04"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+```{r}
+library(readr)
+library(readxl)
+library(ggplot2)
+library(lmtest)
+library(car)
+library(carData)
+library(MASS)
+library(tinytex)
+library(latexpdf)
+library(carData)
+library(plotly)
+library(zoo)
+library(pROC)
+library(ResourceSelection)
+library(e1071)
+```
+
+
+```{r}
+datos<-read_excel("C:/Users/Hernán Ifrán/Downloads/naftaodiesel.xlsx")
+datos$tipo <- as.factor(datos$tipo)
+dim(datos)
+
+```
+
+```{r}
+diesel0_nafta1<-ifelse(datos$tipo=="nafta",1,0)
+table(diesel0_nafta1)
+```
+
+
+```{r}
+
+ggplot(datos, aes(x = tipo)) + geom_bar()
+
+```
+
+#Se observa el grafico desbalanceo de clases que a continuacion evaluaremos 2 modelos, uno balanceado y otro sin balancear.
+
+```{r}
+modelocombustible <- glm(tipo  ~ X1+X2+X3, data = datos,family=binomial)
+summary(modelocombustible)
+```
+# Aqui debajo balanceamos las clases y generamos un nuevo modelo logistico.
+
+```{r}
+
+num_minoritaria <- sum(datos$tipo == "diesel")
+submuestreo <- rbind(
+  subset(datos, tipo == "diesel"),
+  datos[sample(which(datos$tipo == "nafta"), num_minoritaria), ]
+)
+diesel0_nafta1<-ifelse(submuestreo$tipo=="nafta",1,0)
+table(diesel0_nafta1)
+
+modelo_submuestreo <- glm(tipo ~ X1 + X2 + X3, data = submuestreo, family = "binomial")
+summary(modelo_submuestreo)
+
+
+```
+#El modelo muestra que X1 y X3 son variables predictoras significativas en la clasificación del tipo de combustible ya que poseen valores p menores a 0,05, mientras que X2 no lo es.Tambien se Puede observar que el modelo con el submuestro es mejor ya que tiene AIC menor.
+
+```{r}
+anova(modelo_submuestreo,test='Chisq')
+```
+#La anterior tabla proporciona evidencia de que X1 y X2 son estadísticamente significativos en el modelo de regresión logística, si bien X3 es significativamente mayor que el resto a un nivel de significancia del 0.05 (valor p = 3.929e-06).
+
+```{r}
+# Test de verosimilitud (LR test)
+
+modelo_nulo <- glm(tipo ~ 1, data = submuestreo, family = "binomial")
+lrtest <- lrtest(modelo_nulo, modelo_submuestreo)
+lrtest
+```
+#El valor p que arroja el test es extremadamente pequeño (< 1.542e-07), por lo cual se puede concluir que la inclusión de las variables adicionales, mejoran significativamente el ajuste del modelo.
+
+#Hosmer-Lemeshow:
+```{r}
+#hoslem.test(diesel0_nafta1, fitted(modelo_submuestreo))
+hoslem.test(modelo_submuestreo$fitted.values, modelo_submuestreo$residuals, g = 10)
+```
+
+#Dado que el valor p (1) es mayor que el nivel de significancia típico (como 0.05), no hay evidencia suficiente para rechazar la hipótesis nula. Esto sugiere que el modelo parece ajustarse adecuadamente a los datos según el test de Hosmer and Lemeshow. Por lo tanto, hay una diferencia significativa entre las tasas observadas y las tasas predichas por el modelo.
+
+#ROC:
+```{r}
+
+set.seed(2023)
+entrenamiento<-sample(1:100,70)
+
+validacion<-c(1:100)[-entrenamiento]
+
+comb_train<-submuestreo[entrenamiento,]
+comb_test<-submuestreo[validacion,]
+dim(comb_train)
+dim(comb_test)
+#Se observa como quedaron conformadas las clases
+table(comb_train$tipo)
+table(comb_test$tipo)
+```
+
+```{r}
+
+combGLM <- glm(tipo ~ X1+X2+X3, data=comb_train, family=binomial)
+
+ 
+predicciones <- predict(object = combGLM, newdata = comb_test, type = "response") 
+
+curva_roc <- roc(response = comb_test$tipo, predictor = predicciones) 
+curva_roc
+plot(curva_roc,col="red",lwd=2,main="ROC test")
+legend("bottomright",legend=paste("AUC=",round(auc(curva_roc),4)))
+```
+#El área de la curva ROC es del 0.909.El alto valor del AUC indica que, en principio, el modelo logra una alta proporción de clasificaciones correctas y que es un buen clasificador para diferenciar entre las clases de nafta y diesel.
+
+
+
+#Matriz de confusión:
+```{r}
+library(vcd) 
+set.seed(2025)
+entrenamiento<-sample(1:100,70)
+
+validacion<-c(1:100)[-entrenamiento]
+
+comb1_train<-submuestreo[entrenamiento,]
+comb1_test<-submuestreo[validacion,]
+dim(comb1_train)
+dim(comb1_test)
+#Se observa como quedaron conformadas las clases
+table(comb1_train$tipo)
+table(comb1_test$tipo)
+```
+
+```{r}
+comb1GLM <- glm(tipo ~ ., data=comb1_train, family=binomial)
+probabilidad <- predict(object = comb1GLM, newdata = comb1_test, type = "response")
+
+probabilidaddecorte<-0.5
+predicciones <- ifelse(probabilidad >=probabilidaddecorte,1,0)
+
+matriz_confusion <- table(comb1_test$tipo, predicciones, dnn = c("observaciones", "predicciones")) 
+matriz_confusion
+mosaic(matriz_confusion, shade = T, colorize = T, gp = gpar(fill = matrix(c("green3", "red2", "red2", "green3"), 2, 2)))
+#ifelse(test = modelo_submuestreo$fitted.values > 0.5, yes = 1, no = 0) 
+```
+#De esta matriz de confusión, se visualiza que al aplicar el modelo en la base de datos TEST el modelo predice correctamente el 100% de los datos sobre nafta.
+#Para la categoría "diesel":
+#El modelo predijo correctamente 5 observaciones como "diesel" y erróneamente 4 observaciones que en realidad son "nafta" como "diesel". Esto significa que la Precisión  es 0.5556.
+
+#Otras Clasificaciones
+
+#SVM:
+```{r}
+
+
+
+set.seed(321)
+indices <- sample(1:nrow(submuestreo), nrow(submuestreo) * 0.70)
+datos_entrenamiento1 <- submuestreo[indices, ]
+datos_prueba1 <- submuestreo[-indices, ]
+modelo_svm <- svm(tipo ~ X1 + X2 + X3, data = datos_entrenamiento1, kernel = "linear")
+predicciones0 <- predict(modelo_svm, datos_prueba1)
+matriz_confusion0 <- table(Real = datos_prueba1$tipo, Prediccion = predicciones0)
+correctos <- sum(diag(matriz_confusion0))
+total <- sum(matriz_confusion0)
+precision0 <- correctos / total
+
+print("Matriz de Confusión:")
+print(matriz_confusion0)
+
+cat("Precisión del modelo:", precision0, "\n")
+
+
+
+
+```
+# El modelo de Support Vector Marchine tuvo una buena performance para predecir con un precision del 85,71%.
+
+#LDA:
+```{r}
+
+set.seed(321)
+indices <- sample(1:nrow(submuestreo), nrow(submuestreo) * 0.70)
+datos_entrenamiento1 <- submuestreo[indices, ]
+datos_prueba1 <- submuestreo[-indices, ]
+modelo_lda <- lda(tipo ~ X1 + X2 + X3, data = datos_entrenamiento1)
+predicciones <- predict(modelo_lda, datos_prueba1)
+matriz_confusion <- table(Real = datos_prueba1$tipo, Prediccion = predicciones$class)
+precision <- sum(diag(matriz_confusion)) / sum(matriz_confusion)
+print("Matriz de Confusión:")
+cat("Precisión del modelo:", precision, "\n")
+
+plot(predicciones$x, col = as.integer(datos_prueba1$tipo), pch = 19, 
+     xlab = "X1", ylab = "X2")
+print(matriz_confusion)
+
+```
+#En la imagen se puede observar como en el conjunto de prueba el modelo descriminó las clases bastante bien y se obtuvo una precisión del 78,57%. Si bien se puede graficar este modelo en 3D, decidí hacerlo en 2D ya que se puede ver mas clara la clasificación.
+
+#QDA:
+```{r}
+# Establecer una semilla para reproducibilidad
+set.seed(421)
+indices <- sample(1:nrow(submuestreo), nrow(submuestreo) * 0.70)
+datos_entrenamiento2 <- submuestreo[indices, ]
+datos_prueba2 <- submuestreo[-indices, ]
+modelo_qda <- qda(tipo ~ X1 + X2 + X3, data = datos_entrenamiento2)
+predicciones_qda <- predict(modelo_qda, datos_prueba2)
+matriz_confusion1 <- table(Real = datos_prueba2$tipo, Prediccion = predicciones_qda$class)
+precision1 <- sum(diag(matriz_confusion1)) / sum(matriz_confusion1)
+print("Matriz de Confusión:")
+print(matriz_confusion1)
+cat("Precisión del modelo:", precision1, "\n")
+
+```
+
+#En este caso la precisión del modelo es de 64,28%.
+
+#Podemos concluir que de las otras clasificaciones desarrollados en el ranking quedo de la siguiente manera: 1.SVM, 2.LDA y 3.QDA. No tendria en cuenta la regresión logistica ya que no funciona correctamente para predecir la clase diesel.
+
+
+
+
+#Ejercicio2:
+```{r}
+aceites <- data.frame(
+  tipoaceite = c(rep("Mani", 8), rep("Maiz", 8), rep("Soja", 8), rep("Girasol", 8)),
+  concentracion = c(21, 22,38, 13, 23, 35, 14, 16, 33, 18, 14, 27, 21, 17, 15, 23, 8, 12, 21, 9, 16, 7, 6, 11, 5, 12, 10, 13, 9, 10, 15, 6)
+)
+```
+
+
+```{r}
+
+
+anova <- aov(concentracion ~ tipoaceite, data = aceites)
+summary.aov(anova)
+
+```
+# El valor p (0.000412) es significativamente menor que 0.05 (nivel de significación común), lo que sugiere que hay diferencias significativas entre los niveles de "tipoaceite".
+
+
+```{r}
+qqnorm(resid(anova))
+qqline(resid(anova))
+```
+#En el grafico se observa valores atipicos que ponen en evidencia que los residuos no estarian siguiendo una distribución normal.
+# A continuacion se evalualo 2 test de normalidad (Shapiro y Anderson-Darling):
+```{r}
+
+shapiro.test(resid(anova))
+#No hay evidencia para rechzar la hipotesis nula , ya que el p-value es mayor a 5%, lo cual indica que los residuos del modelo son normales.
+```
+
+```{r}
+library(nortest)
+ad.test(residuals(anova))
+```
+#En ambos test no se rechaza la hipotesis nula, por lo tanto los residuos siguen una distribución normal, pero como vimos en el grafico anterior, tras ausencia de normalidad vamos a requerir una transformación de box-cox.
+
+
+```{r}
+boxplot(concentracion ~ tipoaceite, data = aceites, 
+        main = "Boxplot de Concentración por Tipo de Aceite",
+        xlab = "Tipo de Aceite", ylab = "Concentración")
+
+```
+#La visualización del gráfico Boxplot, demuestra una diferencia significativa entre las medianas de la variable concentración.
+
+```{r}
+leveneTest(concentracion~as.factor(tipoaceite),data=aceites)
+
+```
+# El resultado del test de Levene para la homogeneidad de varianza muestra que el valor de F es 1.5588 y el valor de p es 0.2214. Este test se utiliza para evaluar si las varianzas de los grupos son iguales o no. En este caso, como el valor de p es mayor que un nivel de significancia comúnmente utilizado, 0.05, no hay evidencia suficiente para rechazar la hipótesis nula de que las varianzas son iguales entre los grupos.
+
+
+#Transformación de Box-Cox:
+```{r}
+# Aplicar la transformación de Box-Cox a la variable de respuesta
+result <- boxcox(concentracion ~ tipoaceite, data = aceites)
+lambda <- result$x[which.max(result$y)]
+lambda
+
+aov2 <- aov(((concentracion ^ (0.25)-1)/(0.25))~ tipoaceite, data=aceites)
+summary(aov2)
+
+```
+# El valor de lambda óptimo es de 0.06, pero podemos aproximarlo al 0.25. El resultado de la nueva ANOVA sugiere que el tipo de aceite es estadisticamente significativo.
+
+```{r}
+qqPlot(residuals(aov2),ylab = "residuos", col = "coral",pch = 19, col.lines = "cadetblue",id=FALSE)
+```
+#Podemos observar como la transformación de Box-Cox favoreció a que los residuos sigan una distribución normal.A continuación se trabaja en el analisis de supuestos para darle validez al ANOVA.
+
+```{r}
+shapiro.test(resid(aov2))
+```
+
+```{r}
+ad.test(residuals(aov2))
+
+```
+```{r}
+leveneTest(concentracion^(-1)~as.factor(tipoaceite),data=aceites)
+
+```
+#En conclusión se verifican los supuestos necesarios y por lo tanto el resultado del ANOVA aplicado es válido. 
+
+
+```{r}
+
+model2 <- aov(concentracion ~ tipoaceite, data = aceites)
+
+tukey_result <- TukeyHSD(model2, conf.level = 0.95)
+
+print(tukey_result)
+
+```
+#La diferencia de medias significativas se da en los siguientes casos:
+#maiz-girasol,mani-girasol,soja-maiz,soja-mani y no es significativa en soja-girasol,mani-maiz.
+#En conlusión,se puede observar que la dupla maiz y mani no difiere significativamente entre sí ni del grupo " soja" . Sin embargo , los grupos girasol y soja tienen diferencias significativas en sus medias, al igual que los grupos girasol y maiz, y los grupos de soja y mani.
+
+
+
