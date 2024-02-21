@@ -1,0 +1,51 @@
+import pandas as pd
+from fuzzywuzzy import fuzz
+import re
+
+# Cargar los datos del archivo Excel
+df = pd.read_excel('C:/Users/Hernán Ifrán/Downloads/data1.xlsx')
+
+# Preprocesar los datos
+df['DescLocalidad'] = df['DescLocalidad'].astype(str).str.lower()
+df['Partido'] = df['Partido'].astype(str).str.lower()
+
+# Definir un umbral de similitud
+umbral_similitud = 50  
+
+# Solicitar la entrada del usuario
+input_usuario = input("Ingresa una localidad : ").lower()
+
+# Función para extraer lo que sigue a los signos específicos
+def extraer_despues_signos(texto):
+    # Verificar si el valor es una cadena de texto
+    if isinstance(texto, str):
+        # Utilizamos una expresión regular para extraer el texto después de los signos
+        # : / , . - _ espacio
+        patron = r"[:/,.\-_]+(.*)"
+        resultado = re.search(patron, texto)
+        if resultado:
+            return resultado.group(1)
+        else:
+            return texto
+    else:
+        return texto
+
+# Aplicar la función a los datos
+df['DescLocalidad'] = df['DescLocalidad'].apply(extraer_despues_signos)
+input_usuario = extraer_despues_signos(input_usuario)
+
+# Buscar la localidad más similar
+opcion_localidad_similar = None
+max_similitud_localidad = 0
+for i, localidad in enumerate(df['DescLocalidad']):
+    similitud = fuzz.partial_ratio(input_usuario, localidad)
+    if similitud > umbral_similitud and similitud > max_similitud_localidad:
+        opcion_localidad_similar = (df['IdLocalidad'][i], df['Id Partido'][i])
+        max_similitud_localidad = similitud
+
+# Imprimir la opción más similar para la entrada del usuario
+print(f"Entrada del usuario: {input_usuario}")
+if opcion_localidad_similar:
+    print(f"ID Localidad: {opcion_localidad_similar[0]}, ID Partido: {opcion_localidad_similar[1]}, Similitud: {max_similitud_localidad}")
+else:
+    print("No se encontró una localidad similar.")
