@@ -1,0 +1,48 @@
+function geocodificar() {
+  
+  // Obtener el archivo usando DriveApp.getFilesByName()
+  var fileName = "REFES TEST";
+  var files = DriveApp.getFilesByName(fileName);
+  if(files.hasNext()) {
+    // Si encontramos el archivo, obtener su URL
+    var file = files.next();
+    var fileUrl = file.getUrl();
+    
+    
+    var ss = SpreadsheetApp.openByUrl(fileUrl);
+    var sheet = ss.getActiveSheet();
+    var dataRangeAll = sheet.getDataRange();
+    var ultimaFila = dataRangeAll.getLastRow();
+   
+    var filaInicial = 36012;
+    var dataRange = sheet.getRange(filaInicial, 18,ultimaFila, 20);
+    var data = dataRange.getValues();
+
+  
+  for(var i=0; i< data.length; i++) {
+    var fila = data[i];
+
+    var direccion = fila[0];
+
+   
+    if(direccion != "") {
+      // Aquí es donde nos conectamos con Google Maps
+       var geocoder = Maps.newGeocoder().geocode(direccion);
+ 
+      var resultado = geocoder.results[0];
+      Utilities.sleep(1000)
+      var latitud = 0;
+      var longitud = 0;
+
+     
+      if(resultado) {
+        latitud = resultado.geometry.location.lat;
+        longitud = resultado.geometry.location.lng;
+        sheet.getRange(filaInicial + i, 19).setValue(latitud);
+        sheet.getRange(filaInicial + i, 20).setValue(longitud);
+      }
+    }
+  }
+
+}
+}
