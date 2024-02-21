@@ -1,0 +1,10 @@
+Tareas 
+1- compatibilización de campos entre el RFC del Hospital Italiana con el RFC Argentino.
+2- Definición del Input y la estructura.
+3- Desarrollo del script 
+   a- CSV a JSON
+   b- Estructuras de control
+   c- POST
+   d- Envio de mail + info de status de la impotación
+4- Desarrollo de un Instalador del programa.
+5- Armado de instructivo del proceso de importación.
