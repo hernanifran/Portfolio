@@ -1,0 +1,6 @@
+En el rubro de la medicina gran parte de los datos son desestructurados, un ejemplo concreto que enfrentamos en nuestra organización es tomar un campo de texto libre con diagnosticos medicos y codificarlos segun la norma AIS ( Abbreviated Injury Scale). Un gran desafio es lograr captar la gran heterogenidad de escritura de los medicos y, ni hablar, de terminos para describir una lesión. 
+Luego de diversas pruebas opte por el pipeline CountVectorizer, TfidfTransformer y el clasificador Random Forest. 
+La división del conjunto de datos es: 85% entrenamiento y 15% Testeo.
+
+
+

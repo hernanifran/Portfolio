@@ -1,0 +1,3 @@
+Ante el atraso en la clasificación de problemas que tiene el servicio Postventas de Escorial se planteo la solución de automatizar este proceso. Los usuarios desde la pagina web cargan los datos del producto y un detalle del defecto (campo de texto libre). La idea es poder clasificar, en funcion a todos estos datos, el tipo de problema para que se destine a los tecnicos la tarea segun su expertise. 
+La solución arrancó preprocesando el dataset de tal manera que se agruparon clases redundantes y aquellas que tenian un caracter descendente de otras. Luego se utilizó stemmer, se eliminaron las stop words y se encaró el pipeline con TfidfVEctorizer , SVC(linear). 
+Los resultados arrojados del accuracy en la validación cruzada fueron: 0,74%
