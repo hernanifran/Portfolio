@@ -13,7 +13,10 @@ from email.mime.multipart import MIMEMultipart
 
 url = "https://demo-cadera.fundaciontrauma.org.ar/api/importador"
 
-csv_file = 'C:/Users/Hernán Ifrán/Downloads/RAFCAprueba2 - cadera.csv'
+csv_file = 'C:/Users/Hernán Ifrán/Downloads/HIBA CSV Modelo - cadera.csv'
+#csv_file = 'C:/Users/Hernán Ifrán/Downloads/HIBA CSV Modelo - cadera (1).csv'
+
+#csv_file = 'C:/Users/Hernán Ifrán/Downloads/vf - vf.csv'
 
 with open(csv_file, 'r') as csvfile:
     
@@ -25,10 +28,10 @@ with open(csv_file, 'r') as csvfile:
     failed_records=[]
     data = []
 
-
+    
 
     for row in df:
-       
+         
             patient_data = {
                 "Id": row['Id'],
                 "OrganizacionId": 57,
@@ -37,12 +40,15 @@ with open(csv_file, 'r') as csvfile:
                     {
                         "IdExterno": row['a1_03'],
                         "FechaHecho": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),           
-                        "FechaHechoSeDesconoce": row['FechaHechoSeDesconoce'],
+                        "FechaHechoSeDesconoce": False,
                         "EsReinternacion": row['EsReinternacion'],
+                        "EstadoId":row['EstadoId'],
                         "Paciente": {
                             "PacienteMayor60": True,
                             "HistoriaClinica": row['a2_01'],
                             "TipoDocId": 99,
+                            #"NumeroDocumentoSeDesconoce":True, # hay que pedir esto para desconocerlo
+                            "OtrosApellidoSeDesconoce":True,
                             "FechaNacimiento": datetime.datetime.strptime(row['a2_08'], '%d/%m/%Y').strftime('%Y-%m-%d'),
                             "SexoId": row['a2_09'],
                             "GeneroId": row['a2_10'],
@@ -55,7 +61,7 @@ with open(csv_file, 'r') as csvfile:
                             "TipoCoberturaId": row['a2_18']
                         },
                         "IngresoYAntecedentes": {
-                            "FechaYHoraIngreso_HoraSeDesconoce": row['FechaYHoraIngreso_HoraSeDesconoce'],
+                            "FechaYHoraIngreso_HoraSeDesconoce": row['FechaYHoraIngreso_HoraSeD'],
                             "FechaYHoraIngreso": datetime.datetime.strptime(row['a3_01'], '%d/%m/%Y %H:%M').strftime('%Y-%m-%d %H:%M:%S'),
                             "DerivadosSNDId": 99,
                             "LugarPrimeraAtencionId": row['a3_04'],
@@ -76,33 +82,35 @@ with open(csv_file, 'r') as csvfile:
                             "MomentoFracturaPreviaId": row['a3_16'],
                             "IngresoYAntecedentes_LocalizacionFracturaPrevia": [],
                             "IngresoYAntecedentes_TratamientoIngreso": [],
-                            "EvaluacionComorbilidadSNDId": row['EvaluacionComorbilidadSNDId'],
+                            "EvaluacionComorbilidadSNDId": row['a3_08'], 
                             "IngresoYAntecedentes_EvaluacionComorbilidad": [],
-                            "FracturaConcomitanteEnOtroLugarDelCuerpoSNDId": row['a4_02'],
+                            "FracturaConcomitanteEnOtroLugarDelCuerpoSNDId": row['FracturaConcomitante'],
                             "IngresoYAntecedentes_FracturaConcomitanteEnOtroLugarDelCuerpo": [],
                             "TratamientoOsteoprotectorSNDId": row['TratamientoOsteoprotectorSNDId'],
-                            "TiempoTratamientoSNDId": "",
-                            "TiempoTratamiento": "",
-                            "TiempoSuspensionTratamientoSNDId": "",
+                            "TiempoTratamientoSNDId": row['TiempoTratamientoSNDId'],
+                            "TiempoTratamiento": row['a3_19'],
+                            "TiempoSuspensionTratamientoSNDId": row['TiempoSuspensionTratamientoSNDId'],
                             "TiempoSuspensionTratamiento": "",
-                            "FechaFractura":datetime.datetime.strptime(row['a4_01'], '%d/%m/%Y').strftime('%Y-%m-%d '),
+                            "FechaFractura":datetime.datetime.strptime(row['a4_01'], '%d/%m/%Y').strftime('%Y-%m-%d ')if row['a4_01'] else None,
                             "FechaFracturaSeDesconoce": row['FechaFracturaSeDesconoce'],
                             "LugarDondeFracturaId": row['a4_02'],
                             "FracturaPeriprotesicaSNDId": row['a4_08a'],
                             "MecanismoId": 9999,  
                             "CaderaAfectadaId": row['a4_04'],
-                            "EvaluacionMovilidadPrefracturaSNDid": row['EvaluacionMovilidadPrefracturaSNDid'],
+                            "EvaluacionMovilidadPrefracturaSNDid": row['EvalMovilidadPreSNDid'],
                             "puntajeEvaluacionMovilidadPrefractura": row['a3_22'],
                         },
                          "FracturaAtipica":  {
                            "ArbolFracturaAtipicaHecho": [],
                            "ArbolFractruaAtipicaTratamientoHecho": [
                                {
-                                 "FracturaRelProtesisPreviaSND": int(row['FracturaRelProtesisPreviaSNDi']),
+                                 
+                                 "FracturaRelProtesisPreviaSND": row['FracturaRelProtesisPreviaSNDi'],
                                  "EsCaderaDerecha": False
                                },
                                {
-                                 "FracturaRelProtesisPreviaSND": int(row['FracturaRelProtesisPreviaSNDd']),
+                                 
+                                 "FracturaRelProtesisPreviaSND": row['FracturaRelProtesisPreviaSNDd'],
                                  "EsCaderaDerecha": True  
                              }
                             ]
@@ -111,12 +119,14 @@ with open(csv_file, 'r') as csvfile:
                         "EstadiaYProcedimiento": {
                             "FechaHoraEvaluacionServicioSeDesconoce": True,
                             "TromboprofilaxisSNDId": row['a5_03'],
+                            "LaboratorioSNDId": row['LaboratorioSNDId'],
                             "Laboratorios": row['Laboratorios'],
                             "EstadoFisicoId": row['a5_07'],
                             "IntervencionQuirurgicaSNDId": row['a5_08'],
                             "FechaHoraCirugia": datetime.datetime.strptime(row['a5_09'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
-                            "RetrasoCirugiaSNDId": 99,  
-                            "EstadiaYProcedimiento_TipoCirugia": row['a5_12'], 
+                            "RetrasoCirugiaSNDId": row['a5_10'],
+                            "EstadiaYProcedimiento_MotivoDemora":row['a5_11'],
+                            "EstadiaYProcedimiento_TipoCirugia":row['a5_12'], 
                             "OrigenMaterialId": row['a5_13'],
                             "EstadiaYProcedimiento_TipoAnestesia": [],
                             "RetiroSondaId": row['a5_15'],
@@ -125,7 +135,7 @@ with open(csv_file, 'r') as csvfile:
                             "EstadiaYProcedimiento_Complicaciones": [],
                             "ReintervencionQuirurgicaSNDId": row['a5_19'],  
                             "EvaluacionDeliriumId": row['a5_21'],
-                            "EstadiaUCI_SNDId": 2,  
+                            "EstadiaUCI_SNDId": row['UnidadCerradaSNSDId'],  
                             "LaboratorioSNDId": row['LaboratorioSNDId'],
                             "BaseInternacionId": row['a6_03'],
                             "FechaHoraCirugiaSeDesconoce": row['FechaHoraCirugiaSeDesconoce'],
@@ -221,8 +231,22 @@ with open(csv_file, 'r') as csvfile:
                    if id_tratamientoegreso:
                      patient_data['Hechos'][0]['Egreso']['EGRESO_TratamientoActualPrevio'].append(int(id_tratamientoegreso)) 
 
+            if row['a6_01']:
+             UCI_data=row['a6_01'].split(';')
+             UCI_list = []
+             for UCI_str in UCI_data:
+                UCI_info = UCI_str.split(',')
+                UCI_list.append({
+                   'Dias': UCI_info[0], 
+                   'Fecha':UCI_info[1],
+                   'UnidadCerradaId': UCI_info[2]
+                })
+             patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_EstadiaUCI'] = UCI_list
+            else:
+           
+             patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_EstadiaUCI'] = []
             
-         
+
             if row['Laboratorios']:
              labs_data = row['Laboratorios'].split(';')
              labs_list = []
@@ -278,7 +302,7 @@ with open(csv_file, 'r') as csvfile:
                 "Nivel2Id": row['a4_06i'],
                 "Nivel3Id": row['a4_07i'],
                 "AplicaFormularioEspecial": row['AplicaFormularioEspeciali'],
-                "MasEspecificaciones": row['MasEspecificaciones']
+              #  "MasEspecificaciones": row['MasEspecificaciones']
             },
             { 
                
@@ -287,7 +311,7 @@ with open(csv_file, 'r') as csvfile:
                 "Nivel2Id": row['a4_06d'],
                 "Nivel3Id": row['a4_07d'],
                 "AplicaFormularioEspecial": row['AplicaFormularioEspeciald'],
-                "MasEspecificaciones": row['MasEspecificaciones']
+              #  "MasEspecificaciones": row['MasEspecificaciones']
             }
             ]
             elif row['a4_04'] == '1':
@@ -299,7 +323,7 @@ with open(csv_file, 'r') as csvfile:
                     "Nivel2Id": row['a4_06i'],
                     "Nivel3Id": row['a4_07i'],
                     "AplicaFormularioEspecial": row['AplicaFormularioEspeciali'],
-                    "MasEspecificaciones": row['MasEspecificaciones']
+                   # "MasEspecificaciones": row['MasEspecificaciones']
                 }
             ]
             elif row['a4_04'] == '2':
@@ -311,7 +335,7 @@ with open(csv_file, 'r') as csvfile:
                     "Nivel2Id": row['a4_06d'],
                     "Nivel3Id": row['a4_07d'],
                     "AplicaFormularioEspecial": row['AplicaFormularioEspeciald'],
-                    "MasEspecificaciones": row['MasEspecificaciones']
+                    #"MasEspecificaciones": row['MasEspecificaciones']
                 }
             ]
             else:
@@ -326,7 +350,7 @@ with open(csv_file, 'r') as csvfile:
                if row.get('HabilitarSeguimiento30dias','').lower() == 'true':
                 seguimiento_data["HabilitarSeguimiento30dias"]=True
                 seguimiento_data["FechaHoraContacto30SeDesconoce"]= row['FechaHoraContacto30SeDesconoce']
-                seguimiento_data["FechaHoraContacto30"]=datetime.datetime.strptime(row['a8_01'], '%d/%m/%Y %H:%M:%S.%f').strftime('%Y-%m-%d %H:%M:%S.%f')
+                seguimiento_data["FechaHoraContacto30"]=datetime.datetime.strptime(row['a8_01'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
                 seguimiento_data["Condicion30Id"]=row['a8_021']
                 seguimiento_data["Residencia30Id"]= 99
                 seguimiento_data["Reingreso30SNDId"]= 99
@@ -343,7 +367,7 @@ with open(csv_file, 'r') as csvfile:
                     if id_tiposteo30:
                      seguimiento_data['Seguimiento_TipoOsteo30'].append(int(id_tiposteo30))
                 
-                seguimiento_data["Seguimiento_MovilidadPostfractura30SNDId"]= row['MovilidadPostfractura30SNDId']
+                seguimiento_data["Seguimiento_MovilidadPostfractura30SNDId"]= row['Seguimiento_MovilidadPostfractura30SNDId']
                 seguimiento_data["Seguimiento_ValoracionDeambulacion30SNDId"]= 99
                 seguimiento_data["ValoracionDependencia30SNDId"]= row['a8_09']
                 seguimiento_data["ValoracionDependencia30"]= row['ValoracionDependencia30']
@@ -521,5 +545,5 @@ email_message.attach(html_part)
 
 with smtplib.SMTP('smtp.gmail.com', 587) as smtp_server:
      smtp_server.starttls()
-     smtp_server.login('', '')
+     smtp_server.login('desarrollo@fundaciontrauma.org.ar', 'Desarrollo352')
      smtp_server.sendmail(sender_email, receiver_email, email_message.as_string())
