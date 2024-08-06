@@ -7,16 +7,11 @@ import csv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# Configuración de registro de errores
-#logging.basicConfig(filename='log.txt', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 url = "https://demo-cadera.fundaciontrauma.org.ar/api/importador"
 
 csv_file = 'C:/Users/Hernán Ifrán/Downloads/HIBA CSV Modelo - cadera.csv'
-#csv_file = 'C:/Users/Hernán Ifrán/Downloads/HIBA CSV Modelo - cadera (1).csv'
 
-#csv_file = 'C:/Users/Hernán Ifrán/Downloads/vf - vf.csv'
 
 with open(csv_file, 'r') as csvfile:
     
@@ -28,7 +23,14 @@ with open(csv_file, 'r') as csvfile:
     failed_records=[]
     data = []
 
-    
+    def convert_to_bool(value):
+              if value.lower() == 'true':
+               return True
+              elif value.lower() == 'false':
+                return False
+              else:
+           # Manejar otros casos si es necesario
+                return None  
 
     for row in df:
          
@@ -38,127 +40,140 @@ with open(csv_file, 'r') as csvfile:
                 "Token": "c8fab994-8686-4ec1-964e-330ffc9e9d7d",
                 "Hechos": [
                     {
-                        "IdExterno": row['a1_03'],
-                        "FechaHecho": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),           
+                        "IdExterno": int(row['a1_03']),
+                        "FechaHecho": datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),  
                         "FechaHechoSeDesconoce": False,
-                        "EsReinternacion": row['EsReinternacion'],
-                        "EstadoId":row['EstadoId'],
+                        "OrganizacionId": 57,
+                        "EsReinternacion": convert_to_bool(row['EsReinternacion']),
+                        "EstadoId":int (row['EstadoId']),
                         "Paciente": {
                             "PacienteMayor60": True,
                             "HistoriaClinica": row['a2_01'],
                             "TipoDocId": 99,
-                            #"NumeroDocumentoSeDesconoce":True, # hay que pedir esto para desconocerlo
+                            "NroDoc":None,
                             "OtrosApellidoSeDesconoce":True,
                             "FechaNacimiento": datetime.datetime.strptime(row['a2_08'], '%d/%m/%Y').strftime('%Y-%m-%d'),
-                            "SexoId": row['a2_09'],
-                            "GeneroId": row['a2_10'],
+                            "SexoId": int(row['a2_09']),
+                            "GeneroId": int(row['a2_10']),
                             "DomicilioSeDesconoce": True,
                             "CodPostalSeDesconoce": True,
+                            "HistoriaClinicaSeDesconoce": False,
                             "TelefonoSeDesconoce": True,
                             "CorreoElectronicoSeDesconoce": True,
-                            "ResidenciaAtencionId": row['a2_16'],
-                            "CoberturaMedicaSNDId": row['a2_17'],
-                            "TipoCoberturaId": row['a2_18']
+                            "ResidenciaAtencionId": int(row['a2_16']),
+                            "CoberturaMedicaSNDId": int(row['a2_17']),
+                            "TipoCoberturaId": int(row['a2_18'])
                         },
                         "IngresoYAntecedentes": {
-                            "FechaYHoraIngreso_HoraSeDesconoce": row['FechaYHoraIngreso_HoraSeD'],
-                            "FechaYHoraIngreso": datetime.datetime.strptime(row['a3_01'], '%d/%m/%Y %H:%M').strftime('%Y-%m-%d %H:%M:%S'),
+                            "FechaYHoraIngreso_HoraSeDesconoce": convert_to_bool(row['FechaYHoraIngreso_HoraSeD']),
+                            "FechaYHoraIngreso": datetime.datetime.strptime(row['a3_01'], '%d/%m/%Y %H:%M:%S').isoformat(),
                             "DerivadosSNDId": 99,
-                            "LugarPrimeraAtencionId": row['a3_04'],
-                            "Peso": row['a3_05'],
-                            "PesoSeDesconoce": row['PesoSeDesconoce'],
-                            "Talla": row['a3_06'],
-                            "TallaSeDesconoce": row['TallaSeDesconoce'],
-                            "ValoracionCognitivaSNDId": row['ValoracionCognitivaSNDId'],
-                            "ValoracionCognitiva": row['a3_07'],
+                            "LugarPrimeraAtencionId": int(row['a3_04']),
+                            "Peso": int(row['a3_05'])if row['a3_05'] else None,
+                            "PesoSeDesconoce": convert_to_bool (row['PesoSeDesconoce']),
+                            "Talla":int( row['a3_06'])if row['a3_06'] else None,
+                            "TallaSeDesconoce": convert_to_bool(row['TallaSeDesconoce']),
+                            "ValoracionCognitivaSNDId": int( row['ValoracionCognitivaSNDId']),
+                            "ValoracionCognitiva":int( row['a3_07'])if row['a3_07'] else None,
                             "valoracionFuncionalSNDId": 99,
                             "riesgoNutricionalSNDId": 99,
                             "escalaFragilidadSNDId": 99,
-                            "DolorIngresoSNDId": row['a3_11'],
-                            "DolorIngresoId": row['a3_12'],
+                            "DolorIngresoSNDId":int( row['a3_11'])if row['a3_11'] else None,
+                            "DolorIngresoId": int( row['a3_12'])if row['a3_12'] else None,
                             "IngresoYAntecedentes_ManejoDolor": [],
                             "CaidasPreviasSNDId": row['a3_14'],
-                            "FracturasPreviasSNDId": row['a3_15'],
-                            "MomentoFracturaPreviaId": row['a3_16'],
+                            "FracturasPreviasSNDId": int(row['a3_15'])if row['a3_15'] else None,
+                            "MomentoFracturaPreviaId":int( row['a3_16'])if row['a3_16'] else None,
                             "IngresoYAntecedentes_LocalizacionFracturaPrevia": [],
-                            "IngresoYAntecedentes_TratamientoIngreso": [],
-                            "EvaluacionComorbilidadSNDId": row['a3_08'], 
+                            "IngresoYAntecedentes_TratamientoIngreso": [],  
+                            "EvaluacionComorbilidadSNDId": int(row['a3_08'])if row['a3_08'] else None, 
                             "IngresoYAntecedentes_EvaluacionComorbilidad": [],
-                            "FracturaConcomitanteEnOtroLugarDelCuerpoSNDId": row['FracturaConcomitante'],
+                            "FracturaConcomitanteEnOtroLugarDelCuerpoSNDId": int (row['FracturaConcomitante'])if row['FracturaConcomitante'] else None,
                             "IngresoYAntecedentes_FracturaConcomitanteEnOtroLugarDelCuerpo": [],
-                            "TratamientoOsteoprotectorSNDId": row['TratamientoOsteoprotectorSNDId'],
+                            "TratamientoOsteoprotectorSNDId": int(row['TratamientoOsteoprotectorSNDId'])if row['TratamientoOsteoprotectorSNDId'] else None,
                             "TiempoTratamientoSNDId": row['TiempoTratamientoSNDId'],
                             "TiempoTratamiento": row['a3_19'],
                             "TiempoSuspensionTratamientoSNDId": row['TiempoSuspensionTratamientoSNDId'],
-                            "TiempoSuspensionTratamiento": "",
-                            "FechaFractura":datetime.datetime.strptime(row['a4_01'], '%d/%m/%Y').strftime('%Y-%m-%d ')if row['a4_01'] else None,
-                            "FechaFracturaSeDesconoce": row['FechaFracturaSeDesconoce'],
-                            "LugarDondeFracturaId": row['a4_02'],
-                            "FracturaPeriprotesicaSNDId": row['a4_08a'],
+                            "TiempoSuspensionTratamiento": row['a3_20'],
+                            "FechaFractura":datetime.datetime.strptime(row['a4_01'], '%d/%m/%Y').isoformat() if row['a4_01'] else None, 
+                            "FechaFracturaSeDesconoce": convert_to_bool(row['FechaFracturaSeDesconoce']),
+                            "LugarDondeFracturaId": int(row['a4_02'])if row['a4_02'] else None,
+                            "FracturaPeriprotesicaSNDId": int(row['a4_08a'])if row['a4_08a'] else None,
                             "MecanismoId": 9999,  
-                            "CaderaAfectadaId": row['a4_04'],
-                            "EvaluacionMovilidadPrefracturaSNDid": row['EvalMovilidadPreSNDid'],
-                            "puntajeEvaluacionMovilidadPrefractura": row['a3_22'],
+                            "CaderaAfectadaId": int (row['a4_04'])if row['a4_04'] else None,
+                            "EvaluacionMovilidadPrefracturaSNDid": int(row['EvalMovilidadPreSNDid'])if row['EvalMovilidadPreSNDid'] else None,
+                            "puntajeEvaluacionMovilidadPrefractura": int(row['a3_22'])if row['a3_22'] else None,
                         },
-                         "FracturaAtipica":  {
+                        "FracturaAtipica":  {
                            "ArbolFracturaAtipicaHecho": [],
                            "ArbolFractruaAtipicaTratamientoHecho": [
                                {
-                                 
-                                 "FracturaRelProtesisPreviaSND": row['FracturaRelProtesisPreviaSNDi'],
+                                 "DesconoceSuspencionTratamientoMeses": True,
+                                 "FracturaRelProtesisPreviaSND": int(row['FracturaRelProtesisPreviaSNDi'])if row['FracturaRelProtesisPreviaSNDi'] else None,
                                  "EsCaderaDerecha": False
                                },
                                {
-                                 
-                                 "FracturaRelProtesisPreviaSND": row['FracturaRelProtesisPreviaSNDd'],
+                                 "DesconoceSuspencionTratamientoMeses": True,
+                                 "FracturaRelProtesisPreviaSND": int (row['FracturaRelProtesisPreviaSNDd'])if row['FracturaRelProtesisPreviaSNDd'] else None,
                                  "EsCaderaDerecha": True  
                              }
+                            ],
+                            "ArbolFracturaAtipicaConsumoDrogasHecho": [],
+                            "ArbolFracturaAtipicaCriteriosHecho": [
+                             {
+                              "ArbolFracturaAtipicaCriteriosId": 1,
+                              "EsCaderaDerecha": False
+                             },    
                             ]
-                            
+                         
+
                         },
                         "EstadiaYProcedimiento": {
                             "FechaHoraEvaluacionServicioSeDesconoce": True,
-                            "TromboprofilaxisSNDId": row['a5_03'],
-                            "LaboratorioSNDId": row['LaboratorioSNDId'],
-                            "Laboratorios": row['Laboratorios'],
-                            "EstadoFisicoId": row['a5_07'],
-                            "IntervencionQuirurgicaSNDId": row['a5_08'],
-                            "FechaHoraCirugia": datetime.datetime.strptime(row['a5_09'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
-                            "RetrasoCirugiaSNDId": row['a5_10'],
-                            "EstadiaYProcedimiento_MotivoDemora":row['a5_11'],
-                            "EstadiaYProcedimiento_TipoCirugia":row['a5_12'], 
-                            "OrigenMaterialId": row['a5_13'],
+                            "TromboprofilaxisSNDId": int (row['a5_03'])if row['a5_03'] else None,
+                            "EstadoFisicoId": int(row['a5_07'])if row['a5_07'] else None,
+                            "IntervencionQuirurgicaSNDId": row['a5_08'],#if row['a5_08'] else None,
+                            "FechaHoraCirugiaSeDesconoce": convert_to_bool (row['a5_09']),
+                            "FechaHoraCirugia": datetime.datetime.strptime(row['a5_10'], '%d/%m/%Y %H:%M:%S').isoformat()if row['a5_10'] else None,
+                            "RetrasoCirugiaSNDId": int(row['RetrasoCirugiaSNDId'])if row['RetrasoCirugiaSNDId'] else None,
+                            "EstadiaYProcedimiento_MotivoDemora":[99],
+                            "EstadiaYProcedimiento_TipoCirugia":[],
+                            "OrigenMaterialId": int(row['a5_13'])if row['a5_13'] else None,
                             "EstadiaYProcedimiento_TipoAnestesia": [],
-                            "RetiroSondaId": row['a5_15'],
+                            "RetiroSondaId": int(row['a5_15']) if row['a5_15'] is None else 99,
                             "FechaHoraRetiroSondaSeDesconoce": True,
-                            "MovilizacionPrecozId": row['a5_17'],
+                            "MovilizacionPrecozId": int(row['a5_17'])if row['a5_17'] else None,
                             "EstadiaYProcedimiento_Complicaciones": [],
-                            "ReintervencionQuirurgicaSNDId": row['a5_19'],  
-                            "EvaluacionDeliriumId": row['a5_21'],
-                            "EstadiaUCI_SNDId": row['UnidadCerradaSNSDId'],  
-                            "LaboratorioSNDId": row['LaboratorioSNDId'],
-                            "BaseInternacionId": row['a6_03'],
-                            "FechaHoraCirugiaSeDesconoce": row['FechaHoraCirugiaSeDesconoce'],
+                            "ReintervencionQuirurgicaSNDId":int( row['a5_19'])if row['a5_19'] else None,
+                            "EstadiaYProcedimiento_TipoReintervencion": [],
+                            "EvaluacionDeliriumId": int(row['a5_21'])if row['a5_21'] else None,
+                            "EstadiaUCI_SNDId": int (row['UnidadCerradaSNSDId'])if row['UnidadCerradaSNSDId'] else None, 
+                            "EstadiaYProcedimiento_EstadiaUCI": [], 
+                            "LaboratorioSNDId":  int (row['LaboratorioSNDId'])if row['LaboratorioSNDId'] else None,
+                            "EstadiaYProcedimiento_Laboratorio": [],
+                            "BaseInternacionId":int( row['a6_03'])if row['a6_03'] else None,
                             "EstadiaYProcedimiento_PrimeraEvaluacionPorServiciosEspecificos": []
                         },
                         "Egreso": {
-                            "ValoracionCognitivaEgresoSNDId": row['ValoracionCognitivaEgresoSNDId'],
-                            "ValoracionCognitivaEgreso": row['a7_01'],
+                            "ValoracionCognitivaEgresoSNDId": int (row['ValoracionCognitivaEgresoSNDId'])if row['ValoracionCognitivaEgresoSNDId'] else None,
+                            "ValoracionCognitivaEgreso": int (row['a7_01'])if row['a7_01'] else None,
                             "EvaluacionRiesgoCaidaSNDId": 2,  
                             "EGRESO_TratamientoActualPrevio": [],
-                            "DerivacionId": row['a7_05'],
-                            "FechaHoraEgreso": datetime.datetime.strptime(row['a7_06'], '%d/%m/%Y %H:%M').strftime('%Y-%m-%d %H:%M:%S'),
-                            "FechaHoraEgresoSeDesconoce": row['FechaHoraEgresoSeDesconoce'],
-                            "CondicionEgresoId": row['a7_07'],
-                            "DestinoEgresoId": row['a7_08']
+                            "DerivacionId": int (row['a7_05'])if row['a7_05'] else None,
+                            "FechaHoraEgreso":datetime.datetime.strptime(row['a7_06'], '%d/%m/%Y %H:%M:%S').isoformat(),
+                            "FechaHoraEgresoSeDesconoce": convert_to_bool( row['FechaHoraEgresoSeDesconoce']),
+                            "CondicionEgresoId": int (row['a7_07'])if row['a7_07'] else None,
+                            "DestinoEgresoId": int(row['a7_08'])if row['a7_08'] else None
                         },
                         "Seguimiento": {
+                           
                         }
+                        
                     }
                 ]
             }
             
-           
+         
             
             for key, value in row.items():
                 if key.startswith('a3_08') and value == '1':
@@ -186,7 +201,8 @@ with open(csv_file, 'r') as csvfile:
                     id_manejo_dolor = key.split('_')[-1][2:]
                     if id_manejo_dolor:
                         patient_data['Hechos'][0]['IngresoYAntecedentes']['IngresoYAntecedentes_ManejoDolor'].append(int(id_manejo_dolor))
-
+                if key.startswith('a3_99') and value == '1':
+                    patient_data['Hechos'][0]['IngresoYAntecedentes']['IngresoYAntecedentes_ManejoDolor'].append(int(key.split('_')[-1]))
             
             for key, value in row.items():
                 if key.startswith('a3_18') and value == '1':
@@ -201,7 +217,27 @@ with open(csv_file, 'r') as csvfile:
                     if id_locfractura:
                         patient_data['Hechos'][0]['IngresoYAntecedentes']['IngresoYAntecedentes_LocalizacionFracturaPrevia'].append(int(id_locfractura))
 
+            # Verificar y eliminar el campo TiempoTratamiento si es necesario
+            if row['TiempoTratamientoSNDId'] in ['2', '99'] or row['TiempoTratamientoSNDId'] is None:
+             patient_data['Hechos'][0]['IngresoYAntecedentes'].pop('TiempoTratamiento', None)
+             
+             # Verificar y eliminar el campo TiempoSuspensionTratamiento si es necesario
+            if row['TiempoSuspensionTratamientoSNDId'] in ['2', '99'] or row['TiempoSuspensionTratamientoSNDId'] is None:
+             patient_data['Hechos'][0]['IngresoYAntecedentes'].pop('TiempoSuspensionTratamiento', None)
+
+            if row['a5_08'] == '1':
+              patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_TipoCirugia'] = [row['a5_12']]
+            elif row['a5_08'] in ['2', '99']:
+              patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_TipoCirugia'] = []
+
+            if row['a5_19'] == '1':
+              patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_TipoReintervencion'] = [row['a5_20']]
+            elif row['a5_08'] in ['2', '99']:
+              patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_TipoReintervencion'] = []
             
+            if row ['a3_18_99'] =='1':
+             patient_data['Hechos'][0]['IngresoYAntecedentes']['TiempoTratamientoSNDId'] = None
+             patient_data['Hechos'][0]['IngresoYAntecedentes']['TiempoSuspensionTratamientoSNDId'] = None
             
             for key, value in row.items():
                 if key.startswith('a5_14') and value == '1':
@@ -231,6 +267,9 @@ with open(csv_file, 'r') as csvfile:
                    if id_tratamientoegreso:
                      patient_data['Hechos'][0]['Egreso']['EGRESO_TratamientoActualPrevio'].append(int(id_tratamientoegreso)) 
 
+            
+
+
             if row['a6_01']:
              UCI_data=row['a6_01'].split(';')
              UCI_list = []
@@ -246,22 +285,32 @@ with open(csv_file, 'r') as csvfile:
            
              patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_EstadiaUCI'] = []
             
-
-            if row['Laboratorios']:
-             labs_data = row['Laboratorios'].split(';')
-             labs_list = []
-             for lab_str in labs_data:
+            if row['LaboratorioSNDId'] == '1': 
+             if row['Laboratorios']:
+              labs_data = row['Laboratorios'].split(';')
+              labs_list = []
+              for lab_str in labs_data:
                 lab_info = lab_str.split(',')
-                labs_list.append({
+                if len(lab_info) >= 2:
+                 laboratorio_id = int(lab_info[1]) if lab_info[1] else 99
+                 labs_list.append({
                    'fechaLaboratorio': lab_info[0], 
-                   'laboratorioId': lab_info[1],
+                   'laboratorioId': laboratorio_id,
                    'valor': lab_info[2]
-                })
-             patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_Laboratorio'] = labs_list
-            else:
+                 })
+
+                else:
+                
+                 print("Error: Formato incorrecto en los datos de laboratorio en la historia clínica:", row['Id'])
+                 print("Datos de laboratorio que causaron el error:", lab_str) 
+              patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_Laboratorio'] = labs_list
+             else:
            
-             patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_Laboratorio'] = []
+              patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_Laboratorio'] = []
             
+            elif row['LaboratorioSNDId'] in ['2', '99']:
+                patient_data['Hechos'][0]['EstadiaYProcedimiento']['EstadiaYProcedimiento_Laboratorio'] = []
+                 
             criterios_list_derecha = []
             if row['a4_05d'] == '3' and row['a4_06d'] in ['31', '32', '33', '34']:
             
@@ -270,7 +319,7 @@ with open(csv_file, 'r') as csvfile:
                 if row[criterio_column_name] == '1':
                  criterios_list_derecha.append({
                   'ArbolFracturaAtipicaCriteriosId': i,  
-                  'FracturaRelProtesisPreviaSNDd':99,
+                  #'FracturaRelProtesisPreviaSNDd':99,
                   "EsCaderaDerecha": True, 
                   
                  })
@@ -284,7 +333,7 @@ with open(csv_file, 'r') as csvfile:
                 if row[criterio_column_name] == '1':
                  criterios_list_izquierda.append({
                   'ArbolFracturaAtipicaCriteriosId': i,  
-                  'FracturaRelProtesisPreviaSNDi':99,
+                  #'FracturaRelProtesisPreviaSNDi':99,
                   "EsCaderaDerecha": False,  
                   
                  })
@@ -292,55 +341,68 @@ with open(csv_file, 'r') as csvfile:
             
             patient_data['Hechos'][0]['FracturaAtipica']['ArbolFracturaAtipicaCriteriosHecho'] = criterios_list_izquierda + criterios_list_derecha
 
-          
-            if row['a4_04'] == '3':
             
+            
+
+            if row['a4_04'] == '3':
+               if row['a4_06i'] == '13'and row['a4_06d'] == '13':
+                   row['a4_07i'] = None
+                   row['a4_07d'] = None
                patient_data['Hechos'][0]['FracturaAtipica']['ArbolFracturaAtipicaHecho']=[
                {   
                 "EsCaderaDerecha": False,  # Izquierda
                 "Nivel1Id": row['a4_05i'],
                 "Nivel2Id": row['a4_06i'],
-                "Nivel3Id": row['a4_07i'],
-                "AplicaFormularioEspecial": row['AplicaFormularioEspeciali'],
+                #"Nivel3Id": row['a4_07i'],
+                **({"Nivel3Id": row['a4_07i']} if row['a4_07i'] is not None else {}),
+                "AplicaFormularioEspecial": convert_to_bool(row['AplicaFormularioEspeciali']),
               #  "MasEspecificaciones": row['MasEspecificaciones']
             },
             { 
-               
+            
                 "EsCaderaDerecha": True,  # Derecha
                 "Nivel1Id": row['a4_05d'],
                 "Nivel2Id": row['a4_06d'],
-                "Nivel3Id": row['a4_07d'],
-                "AplicaFormularioEspecial": row['AplicaFormularioEspeciald'],
+                #"Nivel3Id": row['a4_07d'],
+                **({"Nivel3Id": row['a4_07d']} if row['a4_07d'] is not None else {}),
+                "AplicaFormularioEspecial": convert_to_bool(row['AplicaFormularioEspeciald']),
               #  "MasEspecificaciones": row['MasEspecificaciones']
             }
             ]
             elif row['a4_04'] == '1':
-            
-               patient_data['Hechos'][0]['FracturaAtipica']['ArbolFracturaAtipicaHecho'] = [
+                if row['a4_06i'] == '13':
+                   row['a4_07i'] = None
+                patient_data['Hechos'][0]['FracturaAtipica']['ArbolFracturaAtipicaHecho'] = [
                 {
                     "EsCaderaDerecha": False,
                     "Nivel1Id": row['a4_05i'],
                     "Nivel2Id": row['a4_06i'],
-                    "Nivel3Id": row['a4_07i'],
-                    "AplicaFormularioEspecial": row['AplicaFormularioEspeciali'],
+                    #"Nivel3Id": row['a4_07i'],
+                    **({"Nivel3Id": row['a4_07i']} if row['a4_07i'] is not None else {}),
+                    "AplicaFormularioEspecial": convert_to_bool(row['AplicaFormularioEspeciali']),
                    # "MasEspecificaciones": row['MasEspecificaciones']
                 }
             ]
             elif row['a4_04'] == '2':
-            
-              patient_data['Hechos'][0]['FracturaAtipica']['ArbolFracturaAtipicaHecho'] = [
+                if row['a4_06d'] == '13':
+                   row['a4_07d'] = None
+                patient_data['Hechos'][0]['FracturaAtipica']['ArbolFracturaAtipicaHecho'] = [
                 {
                     "EsCaderaDerecha": True,
                     "Nivel1Id": row['a4_05d'],
                     "Nivel2Id": row['a4_06d'],
-                    "Nivel3Id": row['a4_07d'],
-                    "AplicaFormularioEspecial": row['AplicaFormularioEspeciald'],
+                    #"Nivel3Id": row['a4_07d'],
+                    **({"Nivel3Id": row['a4_07d']} if row['a4_07d'] is not None else {}),
+                    "AplicaFormularioEspecial":convert_to_bool(row['AplicaFormularioEspeciald']),
                     #"MasEspecificaciones": row['MasEspecificaciones']
                 }
             ]
             else:
             
              patient_data['Hechos'][0]['FracturaAtipica']=[]
+
+            
+            
 
 
             if row['a7_07'] == '1': 
@@ -349,14 +411,14 @@ with open(csv_file, 'r') as csvfile:
 
                if row.get('HabilitarSeguimiento30dias','').lower() == 'true':
                 seguimiento_data["HabilitarSeguimiento30dias"]=True
-                seguimiento_data["FechaHoraContacto30SeDesconoce"]= row['FechaHoraContacto30SeDesconoce']
-                seguimiento_data["FechaHoraContacto30"]=datetime.datetime.strptime(row['a8_01'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-                seguimiento_data["Condicion30Id"]=row['a8_021']
+                seguimiento_data["FechaHoraContacto30SeDesconoce"]= convert_to_bool (row['FechaHoraContacto30SeDesconoce'])
+                seguimiento_data["FechaHoraContacto30"]=datetime.datetime.strptime(row['a8_01'], '%d/%m/%Y %H:%M:%S').isoformat(),
+                seguimiento_data["Condicion30Id"]=int (row['a8_021'])if row['a8_021'] else None 
                 seguimiento_data["Residencia30Id"]= 99
                 seguimiento_data["Reingreso30SNDId"]= 99
                 seguimiento_data["Reintervencion30SNDId"]= 99
                 seguimiento_data["CausaReingreso30Id"]= 99
-                seguimiento_data["TratamientoOsteo30SND"]= row['TratamientoOsteo30SND']
+                seguimiento_data["TratamientoOsteo30SND"]= int(row['TratamientoOsteo30SND'])if row['TratamientoOsteo30SND'] else None
                 seguimiento_data["FechaInicioDeTratamiento30"]= datetime.datetime.strptime(row['a8_10'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
                 seguimiento_data["Seguimiento_TipoOsteo30"]= []
                 
@@ -367,10 +429,10 @@ with open(csv_file, 'r') as csvfile:
                     if id_tiposteo30:
                      seguimiento_data['Seguimiento_TipoOsteo30'].append(int(id_tiposteo30))
                 
-                seguimiento_data["Seguimiento_MovilidadPostfractura30SNDId"]= row['Seguimiento_MovilidadPostfractura30SNDId']
+                seguimiento_data["Seguimiento_MovilidadPostfractura30SNDId"]= int(row['Seguimiento_MovilidadPostfractura30SNDId'])if row['Seguimiento_MovilidadPostfractura30SNDId'] else None
                 seguimiento_data["Seguimiento_ValoracionDeambulacion30SNDId"]= 99
-                seguimiento_data["ValoracionDependencia30SNDId"]= row['a8_09']
-                seguimiento_data["ValoracionDependencia30"]= row['ValoracionDependencia30']
+                seguimiento_data["ValoracionDependencia30SNDId"]= int(row['a8_09'])if row['a8_09'] else None
+                seguimiento_data["ValoracionDependencia30"]= int (row['ValoracionDependencia30'])if row['ValoracionDependencia30'] else None
                else:
                  seguimiento_data["HabilitarSeguimiento30dias"] = False
 
@@ -381,7 +443,7 @@ with open(csv_file, 'r') as csvfile:
                  seguimiento_data["Condicion120Id"]= row['a8_12']
                  seguimiento_data["Residencia120Id"]= 99
                  seguimiento_data["Reingreso120SNDId"]= 99
-                 seguimiento_data["Reintervencion120SNDId"]: 99
+                 seguimiento_data["Reintervencion120SNDId"]: 99 # type: ignore
                  seguimiento_data["CausaReingreso120Id"]= 99
                  seguimiento_data["TratamientoOsteo120SND"]= row['a8_13']
                  seguimiento_data["FechaInicioDeTratamiento120"]= datetime.datetime.strptime(row['FechaInicioDeTratamiento120'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
@@ -423,7 +485,7 @@ with open(csv_file, 'r') as csvfile:
 
                if any(seguimiento_data.values()):
               
-                patient_data['Hechos'][0]['Seguimiento'] = seguimiento_data
+                 patient_data['Hechos'][0]['Seguimiento'] = seguimiento_data
                else:
             
                 patient_data['Hechos'][0]['Seguimiento'] = {
@@ -432,24 +494,25 @@ with open(csv_file, 'r') as csvfile:
                 "HabilitarSeguimiento365dias":False,
               }
             elif row['a7_07'] in ['2','99']:
+             if 'Seguimiento' in patient_data['Hechos'][0]:
+                del patient_data['Hechos'][0]['Seguimiento']
             
-             
-             patient_data['Hechos'][0]['Seguimiento'] = {
-             "HabilitarSeguimiento30dias": False,
-             "HabilitarSeguimiento120dias": False,
-             "HabilitarSeguimiento365dias": False,
-             }
-            else:
-             patient_data['Hechos'][0]['Seguimiento'] = {}
+            
+            
+            
 
+
+            
         
             data.append(patient_data)
             with open('data.json', 'w') as jsonfile:
              json.dump(patient_data, jsonfile,indent=2,ensure_ascii=False)
+
+             print(json.dumps(patient_data, indent=2, ensure_ascii=False))
             
             response = requests.post(url, json=patient_data)
 
-           
+
             if response.status_code == 200:
                success_count += 1
          
